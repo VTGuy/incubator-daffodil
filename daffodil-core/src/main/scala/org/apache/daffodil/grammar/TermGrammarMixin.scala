@@ -16,16 +16,15 @@
  */
 
 package org.apache.daffodil.grammar
-import org.apache.daffodil.exceptions.Assert
 import org.apache.daffodil.dsom.DFDLNewVariableInstance
 import org.apache.daffodil.dsom.ElementBase
-import org.apache.daffodil.dsom.Term
-import org.apache.daffodil.grammar.primitives.OptionalInfixSep
-import org.apache.daffodil.grammar.primitives.Nada
-import org.apache.daffodil.grammar.primitives.MandatoryTextAlignment
-import org.apache.daffodil.grammar.primitives.Separator
-import org.apache.daffodil.dsom.Sequence
 import org.apache.daffodil.dsom.SequenceTermBase
+import org.apache.daffodil.dsom.Term
+import org.apache.daffodil.exceptions.Assert
+import org.apache.daffodil.grammar.primitives.MandatoryTextAlignment
+import org.apache.daffodil.grammar.primitives.Nada
+import org.apache.daffodil.grammar.primitives.OptionalInfixSep
+import org.apache.daffodil.grammar.primitives.Separator
 
 /////////////////////////////////////////////////////////////////
 // Groups System
@@ -97,7 +96,7 @@ trait TermGrammarMixin
 
   protected final def separatedForChoice(bodyArg: => Gram): Gram = {
     val body = bodyArg
-    val (isElementWithNoRep, isRepeatingElement) = body.context match {
+    val (isElementWithNoRep, _) = body.context match {
       case e: ElementBase => (!e.isRepresented, !e.isScalar)
       case other => (false, false)
     }

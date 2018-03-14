@@ -18,9 +18,9 @@
 package org.apache.daffodil.grammar
 import org.apache.daffodil.dsom.SequenceTermBase
 import org.apache.daffodil.grammar.primitives.SequenceCombinator
+import org.apache.daffodil.grammar.primitives.UnorderedSequenceCombinator
 import org.apache.daffodil.schema.annotation.props.gen.SeparatorPosition
 import org.apache.daffodil.schema.annotation.props.gen.SequenceKind
-import org.apache.daffodil.grammar.primitives.UnorderedSequenceCombinator
 
 trait SequenceGrammarMixin extends GrammarMixin { self: SequenceTermBase =>
 
@@ -38,7 +38,7 @@ trait SequenceGrammarMixin extends GrammarMixin { self: SequenceTermBase =>
   private lazy val unorderedSequenceContent = prod("unorderedSequenceContent") {
     //    lazy val uoseq = self.unorderedSeq.get
     //    UnorderedSequenceCombinator(this, uoseq.terms)
-    val choiceTerms = groupMembers.map { _.asTermInChoice }
+    //val choiceTerms = groupMembers.map { _.asTermInChoice }
     //Console.out.println(unorderedSep.parser)
     val terms = groupMembers.map { _.asTermInUnorderedSequence }
     //Console.out.println("terms: " + terms)
