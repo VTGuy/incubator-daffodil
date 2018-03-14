@@ -24,6 +24,8 @@ import org.apache.daffodil.grammar.primitives.OptionalInfixSep
 import org.apache.daffodil.grammar.primitives.Nada
 import org.apache.daffodil.grammar.primitives.MandatoryTextAlignment
 import org.apache.daffodil.grammar.primitives.Separator
+import org.apache.daffodil.dsom.Sequence
+import org.apache.daffodil.dsom.SequenceTermBase
 
 /////////////////////////////////////////////////////////////////
 // Groups System
@@ -55,15 +57,26 @@ trait TermGrammarMixin
     newVarEnds.fold(mt) { _ ~ _ }
   }
 
-  // I am not sure we need to distinguish these two.
-  final lazy val asTermInSequence = prod("asTermInSequence") {
+  final lazy val asTermInOrderedSequence = prod("asTermInOrderedSequence") {
     separatedForSequencePosition(termContentBody)
   }
+
+  lazy val asTermInUnorderedSequence = termContentBody
 
   /**
    * overridden in LocalElementGrammarMixin
    */
   lazy val asTermInChoice = termContentBody
+
+  final def getUnorderedSep(es: SequenceTermBase, hasSeparator: Boolean): Gram = {
+    //if (hasInfixSep) infixSepRule else sepRule
+    //sepRule
+    val unorderedSep = prod("unorderedSeparator", hasSeparator) {
+
+      delimMTA ~ Separator(es, self)
+    }
+    unorderedSep
+  }
 
   /**
    * separator combinators - detect cases where no separator applies.
@@ -77,6 +90,18 @@ trait TermGrammarMixin
       case other => (false, false)
     }
     Assert.usage(isRepeatingElement)
+    Assert.invariant(!isElementWithNoRep) //inputValueCalc not allowed on arrays in DFDL v1.0
+    val res = prefixSep ~ infixSepRule ~ body ~ postfixSep
+    res
+  }
+
+  protected final def separatedForChoice(bodyArg: => Gram): Gram = {
+    val body = bodyArg
+    val (isElementWithNoRep, isRepeatingElement) = body.context match {
+      case e: ElementBase => (!e.isRepresented, !e.isScalar)
+      case other => (false, false)
+    }
+    //Assert.usage(isRepeatingElement)
     Assert.invariant(!isElementWithNoRep) //inputValueCalc not allowed on arrays in DFDL v1.0
     val res = prefixSep ~ infixSepRule ~ body ~ postfixSep
     res

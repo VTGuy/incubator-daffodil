@@ -16,29 +16,36 @@
  */
 
 package org.apache.daffodil.grammar
-import org.apache.daffodil.schema.annotation.props.gen._
-import org.apache.daffodil.grammar.primitives.SequenceCombinator
 import org.apache.daffodil.dsom.SequenceTermBase
+import org.apache.daffodil.grammar.primitives.SequenceCombinator
+import org.apache.daffodil.schema.annotation.props.gen.SeparatorPosition
+import org.apache.daffodil.schema.annotation.props.gen.SequenceKind
+import org.apache.daffodil.grammar.primitives.UnorderedSequenceCombinator
 
 trait SequenceGrammarMixin extends GrammarMixin { self: SequenceTermBase =>
 
   final override lazy val groupContent = prod("groupContent") {
     self.sequenceKind match {
       case SequenceKind.Ordered => orderedSequenceContent
-      case SequenceKind.Unordered => subsetError("Unordered sequences are not supported.") // unorderedSequenceContent
+      case SequenceKind.Unordered => unorderedSequenceContent //subsetError("Unordered sequences are not supported.") // unorderedSequenceContent
     }
   }
 
   private lazy val orderedSequenceContent = prod("sequenceContent") {
-    SequenceCombinator(this, terms)
+    SequenceCombinator(this, orderedTerms)
   }
 
-  //  private lazy val unorderedSequenceContent = prod("unorderedSequenceContent") {
-  //    val uoseq = self.unorderedSeq.get
-  //    UnorderedSequenceCombinator(this, uoseq.terms)
-  //  }
+  private lazy val unorderedSequenceContent = prod("unorderedSequenceContent") {
+    //    lazy val uoseq = self.unorderedSeq.get
+    //    UnorderedSequenceCombinator(this, uoseq.terms)
+    val choiceTerms = groupMembers.map { _.asTermInChoice }
+    //Console.out.println(unorderedSep.parser)
+    val terms = groupMembers.map { _.asTermInUnorderedSequence }
+    //Console.out.println("terms: " + terms)
+    UnorderedSequenceCombinator(this, terms, unorderedSep, self.separatorPosition)
+  }
 
-  protected lazy val terms = groupMembers.map { _.asTermInSequence }
+  protected lazy val orderedTerms = groupMembers.map { _.asTermInOrderedSequence }
 
   /**
    * These are static properties even though the delimiters can have runtime-computed values.
@@ -49,6 +56,8 @@ trait SequenceGrammarMixin extends GrammarMixin { self: SequenceTermBase =>
   final lazy val hasInfixSep = sepExpr(SeparatorPosition.Infix)
 
   final lazy val hasPostfixSep = sepExpr(SeparatorPosition.Postfix)
+  
+  final lazy val unorderedSep = getUnorderedSep(this, hasSeparator)
 
   // note use of pass by value. We don't want to even need the SeparatorPosition property unless there is a separator.
   private def sepExpr(pos: => SeparatorPosition): Boolean = {

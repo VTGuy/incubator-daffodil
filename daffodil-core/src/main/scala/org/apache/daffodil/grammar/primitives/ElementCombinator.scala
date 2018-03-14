@@ -77,13 +77,15 @@ class ElementCombinator(context: ElementBase,
   with Padded {
 
   private lazy val subComb = {
-    if (context.isParentUnorderedSequence) {
-      new ChoiceElementCombinator(context, eBeforeContent,
-        eValue, eAfterValue)
-    } else {
-      new ElementParseAndUnspecifiedLength(context, eBeforeContent,
-        eValue, eAfterValue)
-    }
+//    if (context.isParentUnorderedSequence) {
+//      new ChoiceElementCombinator(context, eBeforeContent,
+//        eValue, eAfterValue)
+//    } else {
+//      new ElementParseAndUnspecifiedLength(context, eBeforeContent,
+//        eValue, eAfterValue)
+//    }
+    new ElementParseAndUnspecifiedLength(context, eBeforeContent,
+         eValue, eAfterValue)
   }
 
   override lazy val parser: Parser = {

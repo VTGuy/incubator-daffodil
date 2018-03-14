@@ -26,6 +26,7 @@ import org.apache.daffodil.schema.annotation.props.gen.LengthUnits
 import org.apache.daffodil.util.Math
 import org.apache.daffodil.dsom.Root
 import org.apache.daffodil.processors.charset.NBitsWidth_BitsCharset
+import org.apache.daffodil.dsom.Sequence
 
 case class AlignmentMultipleOf(nBits: Long) {
   def *(that: AlignmentMultipleOf) = AlignmentMultipleOf(Math.gcd(nBits, that.nBits))
@@ -120,6 +121,8 @@ trait AlignedMixin extends GrammarMixin { self: Term =>
   private lazy val priorAlignmentApprox: AlignmentMultipleOf = {
     if (this.isInstanceOf[Root]) {
       AlignmentMultipleOf(0) // root is aligned with anything
+    } else if (this.parent.isInstanceOf[Sequence] && !this.parent.asInstanceOf[Sequence].isOrdered) {
+      AlignmentMultipleOf(1)
     } else {
       val (priorSibs, parent) = potentialPriorTerms
       val arraySelfAlignment =

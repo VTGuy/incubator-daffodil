@@ -180,8 +180,16 @@ abstract class SequenceTermBase(
     val elementChildrenMinMaxOccurs = apparentXMLChildren.map(c =>
       c match {
         case elem: Elem => {
-          val min = Integer.parseInt(elem.attributes.get("minOccurs").get.text)
-          val max = Integer.parseInt(elem.attributes.get("maxOccurs").get.text)
+          val min = Integer.parseInt(elem.attributes.get("minOccurs") match {
+            case None => "1"
+            case Some(occurs) => occurs.text
+          })
+          val max = Integer.parseInt(elem.attributes.get("maxOccurs") match {
+            case None => "1"
+            case Some(occurs) => occurs.text
+          })
+          //          val min = Integer.parseInt(elem.attributes.get("minOccurs").get.text)
+          //          val max = Integer.parseInt(elem.attributes.get("maxOccurs").get.text)
           Some(min, max)
         }
         case x => None

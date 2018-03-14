@@ -18,7 +18,9 @@
 
 <tdml:testSuite xmlns:tdml="http://www.ibm.com/xmlns/dfdl/testData"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dfdl="http://www.ogf.org/dfdl/dfdl-1.0/"
-	xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ex="http://example.com">
+	xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ex="http://example.com"
+	xmlns:fn="http://www.w3.org/2005/xpath-functions"
+	defaultRoundTrip="false">
 
 	<tdml:defineSchema name="simple">
 		<dfdl:format ref="ex:GeneralFormat" lengthUnits="characters"
@@ -86,7 +88,7 @@
 
 	<tdml:parserTestCase name="test_simple_fail_scalar"
 		model="simple" description="Section 14 Sequence group with left over data - DFDL-14-001R"
-		root="USG_01">
+		root="USG_01" roundTrip="false">
 		<tdml:document><![CDATA[verybadf00d222]]></tdml:document>
 		<tdml:errors>
 			<tdml:error>e1</tdml:error>
@@ -271,7 +273,7 @@
 					</xs:element>
 
 					<xs:element name="e4" type="xs:string" dfdl:lengthKind="delimited"
-						dfdl:inputValueCalc="{ ../e3 }">
+						dfdl:initiator="{ ../ex:e3 }">
 					</xs:element>
 
 				</xs:sequence>
@@ -302,11 +304,40 @@
 				</xs:sequence>
 			</xs:complexType>
 		</xs:element>
+		
+		<xs:element name="USG_03">
+			<xs:complexType>
+			    <xs:sequence dfdl:sequenceKind="ordered" dfdl:separator=",">
+			    	<xs:element name="eX" type="xs:int" dfdl:lengthKind="delimited"/>
+			    	<xs:sequence dfdl:sequenceKind="unordered"
+						dfdl:separator=",">
+
+						<xs:element name="e1" type="xs:int" dfdl:lengthKind="delimited"
+							dfdl:initiator="a">
+						</xs:element>
+	
+						<xs:element name="e2" type="xs:int" dfdl:lengthKind="delimited"
+							dfdl:initiator="b">
+						</xs:element>
+	
+						<xs:element name="e3" type="xs:int" dfdl:lengthKind="delimited"
+							dfdl:initiator="c">
+						</xs:element>
+	
+						<xs:element name="e4" type="xs:string" dfdl:lengthKind="delimited"
+							dfdl:initiator="{ ../ex:e3 }">
+						</xs:element>
+
+					</xs:sequence>
+			    </xs:sequence>
+				
+			</xs:complexType>
+		</xs:element>
 	</tdml:defineSchema>
 
 	<tdml:parserTestCase name="test_simple_invalid_path_to_branch"
 		model="simple_invalid_path_to_branch" description="Section 14 Sequence group with left over data - DFDL-14-001R"
-		root="USG_01">
+		root="USG_01" roundTrip="false">
 		<tdml:document><![CDATA[b2,a1,a4,c3,ruh-oh!]]></tdml:document>
 		<tdml:errors>
 			<tdml:error>Schema Definition Error</tdml:error>
@@ -352,7 +383,7 @@
 									dfdl:lengthKind="delimited" dfdl:initiator="z">
 									<xs:annotation>
 										<xs:appinfo source="http://www.ogf.org/dfdl/">
-											<dfdl:assert test="{ ../../e1 }" message="Assertion failed for ../../e1" />
+											<dfdl:assert test="{ ../../ex:e1 }" message="Assertion failed for ../../e1" />
 										</xs:appinfo>
 									</xs:annotation>
 								</xs:element>
@@ -387,7 +418,7 @@
 									dfdl:lengthKind="delimited" dfdl:initiator="z">
 									<xs:annotation>
 										<xs:appinfo source="http://www.ogf.org/dfdl/">
-											<dfdl:assert test="{ ../uoMember1 }"
+											<dfdl:assert test="{ ../ex:uoMember1 }"
 												message="Assertion failed for ../uoMember1" />
 										</xs:appinfo>
 									</xs:annotation>
@@ -424,7 +455,7 @@
 									dfdl:lengthKind="delimited" dfdl:initiator="z">
 									<xs:annotation>
 										<xs:appinfo source="http://www.ogf.org/dfdl/">
-											<dfdl:assert test="{ ../../e1 eq 1 }"
+											<dfdl:assert test="{ ../../ex:e1 eq 1 }"
 												message="Assertion failed for xs:int(../../e1) eq 1" />
 										</xs:appinfo>
 									</xs:annotation>
@@ -464,7 +495,7 @@
 												dfdl:lengthKind="delimited" dfdl:initiator="z">
 												<xs:annotation>
 													<xs:appinfo source="http://www.ogf.org/dfdl/">
-														<dfdl:assert test="{ ../../../choice[1]/e1 eq 1 }"
+														<dfdl:assert test="{ ../../../ex:choice[1]/ex:e1 eq 1 }"
 															message="Assertion failed for xs:int(../../../choice[1]/e1) eq 1" />
 													</xs:appinfo>
 												</xs:annotation>
@@ -507,7 +538,7 @@
 									dfdl:lengthKind="delimited" dfdl:initiator="z">
 									<xs:annotation>
 										<xs:appinfo source="http://www.ogf.org/dfdl/">
-											<dfdl:assert test="{ (../../e1 * ../../e2) eq 2 }"
+											<dfdl:assert test="{ (../../ex:e1 * ../../ex:e2) eq 2 }"
 												message="Assertion failed for ../../e1" />
 										</xs:appinfo>
 									</xs:annotation>
@@ -544,7 +575,7 @@
 									dfdl:lengthKind="delimited" dfdl:initiator="z">
 									<xs:annotation>
 										<xs:appinfo source="http://www.ogf.org/dfdl/">
-											<dfdl:assert test="{ (../uoMember1[1] * ../uoMember2[1]) eq 2 }"
+											<dfdl:assert test="{ (../ex:uoMember1[1] * ../ex:uoMember2[1]) eq 2 }"
 												message="Assertion failed for (../uoMember1 * ../uoMember2) eq 2" />
 										</xs:appinfo>
 									</xs:annotation>
@@ -594,7 +625,7 @@
 									dfdl:lengthKind="delimited" dfdl:initiator="z">
 									<xs:annotation>
 										<xs:appinfo source="http://www.ogf.org/dfdl/">
-											<dfdl:assert test="{ fn:count( ../../e1 ) eq 3 }"
+											<dfdl:assert test="{ fn:count( ../../ex:e1 ) eq 3 }"
 												message="Assertion failed for fn:count( ../../e1 ) eq 3" />
 										</xs:appinfo>
 									</xs:annotation>
@@ -836,7 +867,8 @@
 		root="SDE_01">
 		<tdml:document><![CDATA[a1,bx20:y99:z,c55]]></tdml:document>
 		<tdml:errors>
-			<tdml:error>Members of an unordered sequence (element.SDE_01::LocalComplexTypeDef::sequence)</tdml:error>
+			<tdml:error>Members of an unordered sequence</tdml:error>
+			<tdml:error>ex:SDE_01::LocalComplexTypeDef::sequence</tdml:error>
 			<tdml:error>must be Element or ElementRef.</tdml:error>
 			<tdml:error>The offending members: choice.</tdml:error>
 		</tdml:errors>
@@ -848,7 +880,8 @@
 		root="SDE_02">
 		<tdml:document><![CDATA[a1,bx20:y99:z,c55]]></tdml:document>
 		<tdml:errors>
-			<tdml:error>Members of an unordered sequence (element.SDE_02::LocalComplexTypeDef::sequence)</tdml:error>
+			<tdml:error>Members of an unordered sequence</tdml:error>
+			<tdml:error>ex:SDE_02::LocalComplexTypeDef::sequence</tdml:error>
 			<tdml:error>that are optional or array elements must have dfdl:occursCountKind='parsed'.</tdml:error>
 			<tdml:error>The offending members: ruh-oh.</tdml:error>
 		</tdml:errors>
@@ -860,10 +893,13 @@
 		root="SDE_03">
 		<tdml:document><![CDATA[a1,bx20:y99:z,c55]]></tdml:document>
 		<tdml:errors>
-			<tdml:error>Two or more members of the unordered sequence (element.SDE_03::LocalComplexTypeDef::sequence)</tdml:error>
+			<tdml:error>Two or more members of the unordered sequence</tdml:error>
+			<tdml:error>ex:SDE_03::LocalComplexTypeDef::sequence</tdml:error>
 			<tdml:error>have the same name and the same namespace.</tdml:error>
-			<tdml:error>[Namespace: prefix "" is mapped to URI "http://example.com"]	Name: e2.</tdml:error>
+			<tdml:error>Namespace: http://example.com</tdml:error>
+			<tdml:error>Name: e2</tdml:error>
 		</tdml:errors>
 	</tdml:parserTestCase>
+
 
 </tdml:testSuite>

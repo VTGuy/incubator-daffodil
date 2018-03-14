@@ -31,11 +31,18 @@ import org.apache.daffodil.grammar.primitives.RepAtMostOccursCount
 import org.apache.daffodil.grammar.primitives.OccursCountExpression
 import org.apache.daffodil.grammar.primitives.OptionalCombinator
 import org.apache.daffodil.grammar.primitives.ArrayCombinator
+import org.apache.daffodil.dsom.Sequence
 
 trait LocalElementGrammarMixin extends GrammarMixin { self: ElementBase =>
 
   override lazy val termContentBody = prod("termContentBody") { // override in ElementRef
-    (if (isScalar) enclosedElement else recurrance)
+    (self.parent match {
+      case s: Sequence => s.sequenceKind match {
+        case SequenceKind.Ordered => (if (isScalar) enclosedElement else recurrance)
+        case SequenceKind.Unordered => enclosedElement
+      }
+      case _ => (if (isScalar) enclosedElement else recurrance)
+    })
   }
 
   protected final lazy val allowedValue = prod("allowedValue") { notStopValue | value }
@@ -67,6 +74,11 @@ trait LocalElementGrammarMixin extends GrammarMixin { self: ElementBase =>
 
   final override lazy val asTermInChoice = prod("asTermInChoice") {
     nonSeparatedScalarDefaultable || recurrance
+  }
+
+  final override lazy val asTermInUnorderedSequence = prod("asTermInUnorderedSequence") {
+    //nonSeparatedScalarDefaultable || enclosedElement
+    enclosedElement
   }
 
   /**

@@ -17,34 +17,49 @@
 
 package org.apache.daffodil.grammar.primitives
 
-import org.apache.daffodil.grammar.Terminal
-import org.apache.daffodil.dsom._
-import org.apache.daffodil.processors.parsers.{ Parser => DaffodilParser }
-import org.apache.daffodil.processors.unparsers.{ Unparser => DaffodilUnparser }
+import org.apache.daffodil.api.WarnID
+import org.apache.daffodil.cookers.ChoiceBranchKeyCooker
+import org.apache.daffodil.dsom.ChoiceTermBase
+import org.apache.daffodil.dsom.ComplexTypeBase
+import org.apache.daffodil.dsom.ElementBase
+import org.apache.daffodil.dsom.Sequence
+import org.apache.daffodil.dsom.SequenceTermBase
+import org.apache.daffodil.dsom.Term
+import org.apache.daffodil.equality.EqualitySuppressUnusedImportWarning
+import org.apache.daffodil.equality.TypeEqual
+import org.apache.daffodil.exceptions.Assert
+import org.apache.daffodil.grammar.EmptyGram
 import org.apache.daffodil.grammar.Gram
-import org.apache.daffodil.processors.parsers.ComplexTypeParser
-import org.apache.daffodil.processors.parsers.SequenceCombinatorParser
+import org.apache.daffodil.grammar.Terminal
+import org.apache.daffodil.processors.parsers.ArrayCombinatorParser
 import org.apache.daffodil.processors.parsers.ChoiceCombinatorParser
 import org.apache.daffodil.processors.parsers.ChoiceDispatchCombinatorParser
-import org.apache.daffodil.processors.parsers.ArrayCombinatorParser
-import org.apache.daffodil.processors.parsers.OptionalCombinatorParser
-import org.apache.daffodil.processors.unparsers.ComplexTypeUnparser
-import org.apache.daffodil.processors.unparsers.SequenceCombinatorUnparser
-import org.apache.daffodil.processors.unparsers.ChoiceCombinatorUnparser
-import org.apache.daffodil.processors.unparsers.HiddenChoiceCombinatorUnparser
+import org.apache.daffodil.processors.parsers.ComplexTypeParser
 import org.apache.daffodil.processors.parsers.DelimiterStackParser
 import org.apache.daffodil.processors.parsers.DynamicEscapeSchemeParser
-import org.apache.daffodil.processors.unparsers.DynamicEscapeSchemeUnparser
-import org.apache.daffodil.processors.unparsers.Unparser
+import org.apache.daffodil.processors.parsers.OptionalCombinatorParser
+import org.apache.daffodil.processors.parsers.{ Parser => DaffodilParser }
+import org.apache.daffodil.processors.parsers.SequenceCombinatorParser
 import org.apache.daffodil.processors.unparsers.ArrayCombinatorUnparser
-import org.apache.daffodil.processors.unparsers.OptionalCombinatorUnparser
+import org.apache.daffodil.processors.unparsers.ChoiceCombinatorUnparser
+import org.apache.daffodil.processors.unparsers.ComplexTypeUnparser
 import org.apache.daffodil.processors.unparsers.DelimiterStackUnparser
-import org.apache.daffodil.grammar.EmptyGram
-import org.apache.daffodil.equality._;
-import org.apache.daffodil.exceptions.Assert
-import org.apache.daffodil.util.Maybe._
-import org.apache.daffodil.cookers.ChoiceBranchKeyCooker
-import org.apache.daffodil.api.WarnID
+import org.apache.daffodil.processors.unparsers.DynamicEscapeSchemeUnparser
+import org.apache.daffodil.processors.unparsers.HiddenChoiceCombinatorUnparser
+import org.apache.daffodil.processors.unparsers.OptionalCombinatorUnparser
+import org.apache.daffodil.processors.unparsers.SequenceCombinatorUnparser
+import org.apache.daffodil.processors.unparsers.{ Unparser => DaffodilUnparser }
+import org.apache.daffodil.util.Maybe.Nope
+import org.apache.daffodil.util.Maybe.One
+import org.apache.daffodil.util.Maybe.toMaybe
+import org.apache.daffodil.processors.parsers.RepUnboundedParser
+import org.apache.daffodil.processors.parsers.AltCompParser
+import org.apache.daffodil.processors.ElementRuntimeData
+import org.apache.daffodil.schema.annotation.props.gen.OccursCountKind
+import org.apache.daffodil.processors.parsers.UnorderedSequenceCombinatorParser
+import org.apache.daffodil.processors.unparsers.Unparser
+import org.apache.daffodil.dsom.Choice
+import org.apache.daffodil.schema.annotation.props.gen.SeparatorPosition
 
 object ENoWarn3 { EqualitySuppressUnusedImportWarning() }
 
@@ -124,6 +139,8 @@ case class SequenceCombinator(sq: SequenceTermBase, rawTerms: Seq[Gram])
 
   lazy val terms = rawTerms.filterNot { _.isEmpty }
 
+  lazy val parsers = terms.map { _.parser }
+
   lazy val unparsers = terms.map { term =>
     term.unparser
   }.toVector
@@ -136,9 +153,67 @@ case class SequenceCombinator(sq: SequenceTermBase, rawTerms: Seq[Gram])
   }
 }
 
-case class UnorderedSequenceCombinator(s: Sequence, terms: Seq[Gram])
-  extends UnimplementedPrimitive(s, false) {
-  // stub for now. These are not implemented currently.
+case class UnorderedSequenceCombinator(s: SequenceTermBase, rawTerms: Seq[Gram],
+                                       separator: Gram, separatorPosition: SeparatorPosition)
+  extends Terminal(s, !rawTerms.filterNot { _.isEmpty }.isEmpty) {
+
+  private val mt: Gram = EmptyGram
+  lazy val body = rawTerms.foldRight(mt) { _ ~ _ }
+  lazy val terms = rawTerms.filterNot { _.isEmpty }
+  lazy val unparsers = terms.map { _.unparser }.toVector
+  lazy val parsers = terms.map { _.parser }
+  lazy val sep = separator.parser
+
+  lazy val newTerms = s.groupMembers.map { _.asTermInChoice }
+  lazy val newParsers = newTerms.map { _.parser }
+
+  lazy val folded = rawTerms.map { gf => gf }.foldRight(EmptyGram.asInstanceOf[Gram]) { _ | _ }
+
+  //  Console.out.println("Parsers: " + parsers)
+  //  Console.out.println("newTerms: " + newTerms)
+  //  Console.out.println("newParsers: " +  newParsers)
+
+  lazy val useq = s.unorderedSeq.get
+
+  val sortOrder = {
+    val members = s.groupMembers.map(t => {
+      t match {
+        case seq: Sequence => seq.groupMembers
+        case ch: Choice => ch.groupMembers
+        case _ => Seq(t)
+      }
+    }).flatten
+
+    members.map(t => {
+      val erd = t.runtimeData.asInstanceOf[ElementRuntimeData]
+      val ns = erd.targetNamespace
+      (erd.namedQName, ns)
+    })
+  }
+
+  val scalarMembers =
+    s.groupMembers.filter(t => t.isInstanceOf[ElementBase]).filter {
+      case eb: ElementBase => eb.isScalar
+    }.map {
+      case eb: ElementBase => {
+        val erd = eb.runtimeData.asInstanceOf[ElementRuntimeData]
+        (erd.namedQName, erd.targetNamespace)
+      }
+    }
+
+  lazy val erd = s.runtimeData.immediateEnclosingElementRuntimeData.get
+  lazy val choice = new AltCompParser(context.runtimeData, newParsers)
+  lazy val rep = new RepUnboundedParser(OccursCountKind.Parsed, choice, erd)
+
+  //Console.out.println(rep)
+
+  lazy val parser: DaffodilParser = new UnorderedSequenceCombinatorParser(useq.termRuntimeData, folded.parser, sep, separatorPosition, sortOrder, scalarMembers)
+
+  override lazy val unparser: DaffodilUnparser = {
+    s.checkHiddenSequenceIsDefaultableOrOVC
+    new SequenceCombinatorUnparser(s.modelGroupRuntimeData, unparsers)
+  }
+
 }
 
 case class ArrayCombinator(e: ElementBase, body: Gram) extends Terminal(e, !body.isEmpty) {
